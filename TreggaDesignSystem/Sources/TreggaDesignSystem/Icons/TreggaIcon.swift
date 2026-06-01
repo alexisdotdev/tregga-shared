@@ -1,11 +1,11 @@
 import SwiftUI
+import Hugeicons
 
 /// Tregga icon wrapper with a stable short-name API.
 ///
-/// Currently maps short names to SF Symbols. The HTML/React prototype uses
-/// `@hugeicons/core-free-icons`; once we add HugeiconsKit as a Swift Package
-/// dependency we'll swap the body of `image` to use Hugeicons and keep the
-/// public API identical so call sites don't change.
+/// Backed by Hugeicons (stroke rounded, grid 24x24). Cada caso de `Name` mapea
+/// al `HugeiconsAsset` más cercano vía `Hugeicons.<id>.image()`. La API pública
+/// (init + casos) se mantiene idéntica a la versión basada en SF Symbols.
 public struct TreggaIcon: View {
     public enum Name: String, Sendable, CaseIterable {
         // Navigation
@@ -28,55 +28,56 @@ public struct TreggaIcon: View {
         case grid, moon, sun
         case arrow
 
-        var sfSymbol: String {
+        /// Hugeicons asset que respalda cada caso. Stroke rounded, grid 24x24.
+        var asset: HugeiconsAsset {
             switch self {
             // Navigation
-            case .home:    return "house.fill"
-            case .search:  return "magnifyingglass"
-            case .bag:     return "bag.fill"
-            case .receipt: return "doc.text.fill"
-            case .user:    return "person.crop.circle.fill"
-            case .chevR:   return "chevron.right"
-            case .chevL:   return "chevron.left"
-            case .chevD:   return "chevron.down"
-            case .chevU:   return "chevron.up"
-            case .plus:    return "plus"
-            case .minus:   return "minus"
-            case .close:   return "xmark"
-            case .check:   return "checkmark"
-            case .filter:  return "line.3.horizontal.decrease"
-            case .more:    return "ellipsis"
+            case .home:    return Hugeicons.home01
+            case .search:  return Hugeicons.search01
+            case .bag:     return Hugeicons.shoppingBag01
+            case .receipt: return Hugeicons.invoice01
+            case .user:    return Hugeicons.userCircle
+            case .chevR:   return Hugeicons.arrowRight01
+            case .chevL:   return Hugeicons.arrowLeft01
+            case .chevD:   return Hugeicons.arrowDown01
+            case .chevU:   return Hugeicons.arrowUp01
+            case .plus:    return Hugeicons.add01
+            case .minus:   return Hugeicons.remove01
+            case .close:   return Hugeicons.cancel01
+            case .check:   return Hugeicons.tick01
+            case .filter:  return Hugeicons.filter
+            case .more:    return Hugeicons.moreHorizontal
 
             // Communication
-            case .bell:    return "bell.fill"
-            case .heart:   return "heart.fill"
-            case .star:    return "star.fill"
-            case .phone:   return "phone.fill"
-            case .message: return "bubble.left.fill"
+            case .bell:    return Hugeicons.notification01
+            case .heart:   return Hugeicons.heart
+            case .star:    return Hugeicons.star
+            case .phone:   return Hugeicons.call
+            case .message: return Hugeicons.bubbleChat
 
             // Location & time
-            case .pin:     return "mappin.and.ellipse"
-            case .clock:   return "clock.fill"
-            case .truck:   return "shippingbox.fill"
-            case .bike:    return "bicycle"
+            case .pin:     return Hugeicons.mapPin
+            case .clock:   return Hugeicons.clock01
+            case .truck:   return Hugeicons.truck
+            case .bike:    return Hugeicons.bicycle
 
             // Payments
-            case .card:    return "creditcard.fill"
-            case .cash:    return "banknote.fill"
-            case .wallet:  return "wallet.pass.fill"
+            case .card:    return Hugeicons.creditCard
+            case .cash:    return Hugeicons.cash01
+            case .wallet:  return Hugeicons.wallet01
 
             // System
-            case .gift:    return "gift.fill"
-            case .tag:     return "tag.fill"
-            case .share:   return "square.and.arrow.up"
-            case .trash:   return "trash"
-            case .edit:    return "pencil"
-            case .refresh: return "arrow.clockwise"
-            case .info:    return "info.circle.fill"
-            case .grid:    return "square.grid.2x2.fill"
-            case .moon:    return "moon.fill"
-            case .sun:     return "sun.max.fill"
-            case .arrow:   return "arrow.right"
+            case .gift:    return Hugeicons.gift
+            case .tag:     return Hugeicons.tag01
+            case .share:   return Hugeicons.share01
+            case .trash:   return Hugeicons.delete01
+            case .edit:    return Hugeicons.edit01
+            case .refresh: return Hugeicons.refresh
+            case .info:    return Hugeicons.informationCircle
+            case .grid:    return Hugeicons.dashboardSquare01
+            case .moon:    return Hugeicons.moon
+            case .sun:     return Hugeicons.sun01
+            case .arrow:   return Hugeicons.arrowRight01
             }
         }
     }
@@ -99,8 +100,10 @@ public struct TreggaIcon: View {
     }
 
     public var body: some View {
-        Image(systemName: name.sfSymbol)
-            .font(.system(size: size, weight: weight))
+        name.asset.image()
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
             .foregroundStyle(color)
             .frame(width: size, height: size)
     }

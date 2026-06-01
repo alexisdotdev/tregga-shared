@@ -11,9 +11,15 @@ let package = Package(
             targets: ["TreggaDesignSystem"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/isapozhnik/hugeicons-swift.git", from: "4.1.6"),
+    ],
     targets: [
         .target(
             name: "TreggaDesignSystem",
+            dependencies: [
+                .product(name: "Hugeicons", package: "hugeicons-swift"),
+            ],
             path: "Sources/TreggaDesignSystem",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
