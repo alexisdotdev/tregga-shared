@@ -29,6 +29,11 @@ public struct DKV: View {
             HStack(spacing: 10) {
                 if let icon {
                     icon
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 17, height: 17)
+                        .foregroundStyle(tone == .primary ? TreggaColors.primary : TreggaColors.text)
                         .frame(width: 32, height: 32)
                         .background(TreggaColors.surface, in: RoundedRectangle(cornerRadius: 8))
                 }

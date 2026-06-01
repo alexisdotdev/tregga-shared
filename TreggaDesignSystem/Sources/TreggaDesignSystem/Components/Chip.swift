@@ -22,7 +22,13 @@ public struct Chip: View {
     public var body: some View {
         Button(action: { action?() }) {
             HStack(spacing: 6) {
-                if let icon { icon }
+                if let icon {
+                    icon
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                }
                 Text(label)
                     .font(.system(size: 13.5, weight: .semibold))
                     .tracking(-0.1)

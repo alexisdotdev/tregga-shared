@@ -13,9 +13,7 @@ public struct SearchBar: View {
 
     public var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(TreggaColors.textSec)
+            TreggaIcon(.search, size: 19, color: TreggaColors.textSec)
             Text(placeholder)
                 .treggaStyle(.bodyLg)
                 .foregroundStyle(TreggaColors.textSec)

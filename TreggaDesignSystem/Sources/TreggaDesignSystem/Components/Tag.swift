@@ -24,7 +24,13 @@ public struct Tag: View {
 
     public var body: some View {
         HStack(spacing: 4) {
-            if let icon { icon }
+            if let icon {
+                icon
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 12, height: 12)
+            }
             Text(label)
                 .font(.system(size: 11, weight: .heavy))
                 .tracking(0.3)

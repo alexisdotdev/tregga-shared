@@ -23,9 +23,7 @@ public struct DriverHeader<Trailing: View>: View {
         HStack(spacing: 10) {
             if let onBack {
                 Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(TreggaColors.text)
+                    TreggaIcon(.chevL, size: 20, color: TreggaColors.text)
                         .frame(width: 36, height: 36)
                         .background(TreggaColors.surface, in: Circle())
                         .overlay(Circle().stroke(TreggaColors.border, lineWidth: 1))
@@ -60,9 +58,7 @@ public struct DriverHeader<Trailing: View>: View {
 #Preview("DriverHeader") {
     VStack(spacing: 0) {
         DriverHeader(title: "Carnitas Don Lupe", subtitle: "Pedido #4821", onBack: { }) {
-            Image(systemName: "phone.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(TreggaColors.text)
+            TreggaIcon(.phone, size: 18, color: TreggaColors.text)
                 .frame(width: 36, height: 36)
                 .background(TreggaColors.surface, in: Circle())
         }

@@ -35,11 +35,23 @@ public struct TreggaButton: View {
     public var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                if let icon { icon }
+                if let icon {
+                    icon
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                }
                 Text(label)
                     .font(.system(size: height >= 56 ? 17 : 16, weight: .bold))
                     .tracking(-0.2)
-                if let iconRight { iconRight }
+                if let iconRight {
+                    iconRight
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                }
             }
             .padding(.horizontal, isFullWidth ? 0 : 18)
             .frame(maxWidth: isFullWidth ? .infinity : nil)
