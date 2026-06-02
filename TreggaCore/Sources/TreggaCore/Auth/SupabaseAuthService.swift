@@ -60,6 +60,25 @@ public final class SupabaseAuthService: AuthService {
         try await client.auth.signOut()
     }
 
+    public func signOutLocal() async throws {
+        // scope .local: limpia la sesión en este dispositivo SIN revocar el
+        // refresh token en el servidor, para poder re-loguear con biometría.
+        try await client.auth.signOut(scope: .local)
+    }
+
+    public func restoreSession(refreshToken: String) async throws -> AuthSession.Tokens {
+        do {
+            let session = try await client.auth.refreshSession(refreshToken: refreshToken)
+            return AuthSession.Tokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id
+            )
+        } catch {
+            throw mapError(error)
+        }
+    }
+
     public func currentUserIsAnonymous() async -> Bool {
         guard let session = try? await client.auth.session else { return false }
         return session.user.isAnonymous == true

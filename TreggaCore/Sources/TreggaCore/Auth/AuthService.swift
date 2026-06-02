@@ -13,6 +13,16 @@ public protocol AuthService: Sendable {
     func currentSession() async throws -> AuthSession.Tokens?
     func signOut() async throws
 
+    /// Cierra la sesión SOLO localmente, **sin revocar** el refresh token en el
+    /// servidor, para permitir un re-login biométrico posterior con
+    /// `restoreSession`. Se usa al "cerrar sesión" cuando Face ID está activado.
+    func signOutLocal() async throws
+
+    /// Re-establece la sesión a partir de un refresh token guardado (re-login
+    /// biométrico estilo Banamex). Devuelve tokens frescos. Lanza si el token
+    /// expiró o fue revocado — en ese caso la app cae al login normal.
+    func restoreSession(refreshToken: String) async throws -> AuthSession.Tokens
+
     /// `true` si la sesión activa es anónima (andamiaje del signup, no un login
     /// real). Se usa al arrancar para no resumir un signup abandonado.
     func currentUserIsAnonymous() async -> Bool
@@ -132,6 +142,20 @@ public final class MockAuthService: AuthService {
     public func signOut() async throws {
         lastPhone = nil
         attemptsByPhone.removeAll()
+    }
+
+    public func signOutLocal() async throws {
+        lastPhone = nil
+        attemptsByPhone.removeAll()
+    }
+
+    public func restoreSession(refreshToken: String) async throws -> AuthSession.Tokens {
+        // Mock: acepta cualquier refresh token recordado y devuelve una sesión.
+        AuthSession.Tokens(
+            accessToken: "mock-restored-\(UUID().uuidString)",
+            refreshToken: refreshToken,
+            userId: UUID()
+        )
     }
 
     public func signInAnonymously() async throws -> AuthSession.Tokens {
