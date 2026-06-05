@@ -31,6 +31,13 @@ public enum PhoneFormatter {
         String(s.filter(\.isNumber).prefix(10))
     }
 
+    /// Formatea un teléfono **almacenado** que puede venir en E.164 (`+52…`):
+    /// toma los últimos 10 dígitos para descartar el lada de país.
+    /// `"+524511003076"` → `"(451) 100 3076"`.
+    public static func displayMX(_ stored: String) -> String {
+        format(String(stored.filter(\.isNumber).suffix(10)))
+    }
+
     /// Convierte 10 dígitos a E.164 mexicano (`+52XXXXXXXXXX`).
     /// Si el input no tiene exactamente 10 dígitos, retorna nil.
     public static func e164MX(_ s: String) -> String? {
