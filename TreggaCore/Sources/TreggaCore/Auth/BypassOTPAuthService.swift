@@ -182,7 +182,10 @@ public final class BypassOTPAuthService: AuthService {
     public func signInWithGoogle(launchFlow: @escaping OAuthLaunchFlow) async throws -> AuthSession.Tokens {
         try? await client.auth.signOut()
 
-        let redirectURL = URL(string: "app.tregga.delivery://login-callback")!
+        // Scheme derivado del bundle id de la app host (food/delivery comparten
+        // este paquete) para que el callback vuelva a ESTA app y no a la otra.
+        let scheme = Bundle.main.bundleIdentifier ?? "app.tregga.food"
+        let redirectURL = URL(string: "\(scheme)://login-callback")!
         try await client.auth.signInWithOAuth(
             provider: .google,
             redirectTo: redirectURL,

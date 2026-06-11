@@ -76,6 +76,10 @@ public enum AuthError: Error, Equatable, Sendable {
     case invalidCode
     case tooManyAttempts(retryAfterSeconds: Int)
     case networkFailure
+    /// La red existe pero es **débil/inestable** (timeout, conexión perdida a
+    /// mitad de la petición, host inalcanzable). Se distingue de `networkFailure`
+    /// (sin red) para mostrar "conexión inestable" en vez de "sin conexión".
+    case weakConnection
     case rateLimitedSMS(retryAfterSeconds: Int)
     /// La cuenta (teléfono o correo) no está registrada — la UI muestra un diálogo
     /// para crear cuenta o entrar con Google, en vez de auto-iniciar el registro.

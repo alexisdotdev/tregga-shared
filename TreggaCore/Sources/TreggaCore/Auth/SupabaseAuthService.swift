@@ -106,12 +106,16 @@ public final class SupabaseAuthService: AuthService {
     }
 
     public func phoneIsRegistered(phoneE164: String) async throws -> Bool {
-        struct Params: Encodable { let p_phone: String }
-        let exists: Bool = try await client.rpc(
-            "check_phone_registered",
-            params: Params(p_phone: phoneE164)
-        ).execute().value
-        return exists
+        do {
+            struct Params: Encodable { let p_phone: String }
+            let exists: Bool = try await client.rpc(
+                "check_phone_registered",
+                params: Params(p_phone: phoneE164)
+            ).execute().value
+            return exists
+        } catch {
+            throw mapError(error)
+        }
     }
 
     public func emailIsRegistered(email: String) async throws -> Bool {
@@ -119,21 +123,29 @@ public final class SupabaseAuthService: AuthService {
     }
 
     public func emailAccountKind(email: String) async throws -> AccountKind {
-        struct Params: Encodable { let p_email: String }
-        let raw: String = try await client.rpc(
-            "check_email_account_kind",
-            params: Params(p_email: email)
-        ).execute().value
-        return AccountKind(rawValue: raw) ?? .none
+        do {
+            struct Params: Encodable { let p_email: String }
+            let raw: String = try await client.rpc(
+                "check_email_account_kind",
+                params: Params(p_email: email)
+            ).execute().value
+            return AccountKind(rawValue: raw) ?? .none
+        } catch {
+            throw mapError(error)
+        }
     }
 
     public func phoneAccountKind(phoneE164: String) async throws -> AccountKind {
-        struct Params: Encodable { let p_phone: String }
-        let raw: String = try await client.rpc(
-            "check_phone_account_kind",
-            params: Params(p_phone: phoneE164)
-        ).execute().value
-        return AccountKind(rawValue: raw) ?? .none
+        do {
+            struct Params: Encodable { let p_phone: String }
+            let raw: String = try await client.rpc(
+                "check_phone_account_kind",
+                params: Params(p_phone: phoneE164)
+            ).execute().value
+            return AccountKind(rawValue: raw) ?? .none
+        } catch {
+            throw mapError(error)
+        }
     }
 
     public func sendEmailOTP(email: String) async throws {
@@ -172,7 +184,12 @@ public final class SupabaseAuthService: AuthService {
         // Limpia cualquier sesión cacheada antes del nuevo OAuth.
         try? await client.auth.signOut()
 
-        let redirectURL = URL(string: "app.tregga.delivery://login-callback")!
+        // El scheme del callback se deriva del bundle id de la app host: food y
+        // delivery comparten este paquete, así que cada app debe recibir el
+        // callback en SU propio scheme (registrado vía ASWebAuthenticationSession)
+        // para volver a la app en lugar de abrir la otra app/web.
+        let scheme = Bundle.main.bundleIdentifier ?? "app.tregga.food"
+        let redirectURL = URL(string: "\(scheme)://login-callback")!
         do {
             try await client.auth.signInWithOAuth(
                 provider: .google,
@@ -200,17 +217,38 @@ public final class SupabaseAuthService: AuthService {
     }
 
     private func mapError(_ error: Error) -> AuthError {
+        // Clasificamos los fallos de red por **código** de URLError (no por
+        // substring del mensaje, que confundía "conexión perdida" con "sin
+        // internet"): sin red real → networkFailure; red débil/inestable
+        // (timeout, conexión caída a mitad, host inalcanzable) → weakConnection.
+        if let code = urlErrorCode(error) {
+            switch code {
+            case .notConnectedToInternet, .dataNotAllowed:
+                return .networkFailure
+            case .timedOut, .networkConnectionLost, .cannotConnectToHost,
+                 .cannotFindHost, .dnsLookupFailed:
+                return .weakConnection
+            default:
+                break
+            }
+        }
         let nsErr = error as NSError
         let msg = nsErr.localizedDescription.lowercased()
         if msg.contains("rate") {
             return .rateLimitedSMS(retryAfterSeconds: 60)
         }
-        if msg.contains("network") || msg.contains("connection") {
-            return .networkFailure
-        }
         if msg.contains("invalid") && (msg.contains("token") || msg.contains("code")) {
             return .invalidCode
         }
         return .unknown(nsErr.localizedDescription)
+    }
+
+    /// Extrae el `URLError.Code` aun cuando supabase-swift envuelve el error de
+    /// red en un `NSError` del dominio `NSURLErrorDomain`.
+    private func urlErrorCode(_ error: Error) -> URLError.Code? {
+        if let urlError = error as? URLError { return urlError.code }
+        let nsErr = error as NSError
+        guard nsErr.domain == NSURLErrorDomain else { return nil }
+        return URLError.Code(rawValue: nsErr.code)
     }
 }
