@@ -14,28 +14,59 @@ public final class SupabaseAuthService: AuthService {
         guard phoneE164.hasPrefix("+52"), phoneE164.count == 13 else {
             throw AuthError.invalidPhone
         }
-        do {
-            try await client.auth.signInWithOTP(phone: phoneE164)
-        } catch {
-            throw mapError(error)
+        // OTP por CORREO (no SMS). El servidor resuelve el correo de la cuenta del
+        // teléfono y dispara el OTP por correo de Supabase. El correo nunca llega
+        // al cliente (medida de seguridad: se descartó el SMS por completo).
+        struct Body: Encodable { let phone: String }
+        struct Resp: Decodable { let found: Bool? }
+        let resp: Resp = try await postAuth("api/auth/phone-otp/request", body: Body(phone: phoneE164))
+        if resp.found == false {
+            throw AuthError.accountNotRegistered
         }
     }
 
     public func verifyOTP(phoneE164: String, code: String) async throws -> AuthSession.Tokens {
+        // Verifica contra el servidor (que valida el OTP de correo) y establece la
+        // sesión en el cliente con los tokens devueltos.
+        struct Body: Encodable { let phone: String; let code: String }
+        struct Resp: Decodable { let access_token: String; let refresh_token: String }
+        let resp: Resp = try await postAuth(
+            "api/auth/phone-otp/verify",
+            body: Body(phone: phoneE164, code: code),
+            invalidCodeOn401: true
+        )
         do {
-            let response = try await client.auth.verifyOTP(
-                phone: phoneE164,
-                token: code,
-                type: .sms
+            let session = try await client.auth.setSession(
+                accessToken: resp.access_token,
+                refreshToken: resp.refresh_token
             )
-            guard let session = response.session else {
-                throw AuthError.invalidCode
-            }
             return AuthSession.Tokens(
                 accessToken: session.accessToken,
                 refreshToken: session.refreshToken,
                 userId: session.user.id
             )
+        } catch {
+            throw mapError(error)
+        }
+    }
+
+    /// POST JSON a un endpoint de auth del API Next.js (tregga.app). Mapea 401 a
+    /// `invalidCode` cuando aplica (verificación de OTP).
+    private func postAuth<T: Decodable, B: Encodable>(
+        _ path: String, body: B, invalidCodeOn401: Bool = false
+    ) async throws -> T {
+        var request = URLRequest(url: Config.API_BASE.appendingPathComponent(path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if invalidCodeOn401, status == 401 { throw AuthError.invalidCode }
+            guard (200..<300).contains(status) else {
+                throw AuthError.unknown("Error del servidor (\(status))")
+            }
+            return try JSONDecoder().decode(T.self, from: data)
         } catch let e as AuthError {
             throw e
         } catch {
