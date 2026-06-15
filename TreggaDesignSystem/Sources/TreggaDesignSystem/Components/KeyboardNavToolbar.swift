@@ -2,11 +2,11 @@ import SwiftUI
 import UIKit
 
 // Barra de teclado con iconos PLANOS (↑/↓/✓). iOS 26 dibuja como chips circulares
-// "glass" cualquier botón de icono (tanto en la toolbar de SwiftUI como en un
-// UIToolbar de UIKit), así que aquí la barra es una UIView propia con UIImageView
-// + gestos de tap — que iOS NO estiliza — montada como inputAccessoryView.
-//
-// La API pública (keyboardNavToolbar / keyboardDismissToolbar) no cambia.
+// "glass" cualquier botón de icono (toolbar de SwiftUI Y UIToolbar de UIKit), así
+// que la barra es una UIView propia (inputAccessoryView) con UIImageView + gestos
+// de tap, que iOS NO estiliza. El accessory es más alto que la barra visible para
+// dejar un hueco entre la barra y el teclado (no queda pegada). La API pública no
+// cambia.
 
 // MARK: - First responder actual (truco sendAction)
 
@@ -20,7 +20,7 @@ private extension UIResponder {
     @objc func treggaCaptureSelf() { UIResponder.treggaCurrent = self }
 }
 
-// MARK: - La barra (UIView con iconos planos)
+// MARK: - La barra (UIView con iconos planos + hueco sobre el teclado)
 
 final class KbBarView: UIView {
     private let upIcon = UIImageView()
@@ -32,18 +32,29 @@ final class KbBarView: UIView {
     var onDown: (() -> Void)?
     var onDone: (() -> Void)?
 
+    /// Alto de la barra visible y del hueco transparente hacia el teclado.
+    private static let barHeight: CGFloat = 46
+    private static let gap: CGFloat = 12
+
     init(showNav: Bool, tint: UIColor) {
         self.tint = tint
-        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 46))
+        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width,
+                                 height: Self.barHeight + Self.gap))
         autoresizingMask = .flexibleWidth
-        backgroundColor = UIColor { tc in
+        backgroundColor = .clear   // el hueco inferior deja ver el fondo (separa del teclado)
+
+        // Contenedor visible (fondo sólido + hairline), pegado ARRIBA; abajo queda el hueco.
+        let content = UIView()
+        content.translatesAutoresizingMaskIntoConstraints = false
+        content.backgroundColor = UIColor { tc in
             tc.userInterfaceStyle == .dark ? UIColor(white: 0.14, alpha: 1) : UIColor(white: 0.97, alpha: 1)
         }
+        addSubview(content)
 
         let hairline = UIView()
         hairline.backgroundColor = .separator
         hairline.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hairline)
+        content.addSubview(hairline)
 
         configure(upIcon, "chevron.up", #selector(tapUp))
         configure(downIcon, "chevron.down", #selector(tapDown))
@@ -57,17 +68,23 @@ final class KbBarView: UIView {
         stack.alignment = .center
         stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
+        content.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            hairline.topAnchor.constraint(equalTo: topAnchor),
-            hairline.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hairline.trailingAnchor.constraint(equalTo: trailingAnchor),
+            content.topAnchor.constraint(equalTo: topAnchor),
+            content.leadingAnchor.constraint(equalTo: leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: trailingAnchor),
+            content.heightAnchor.constraint(equalToConstant: Self.barHeight),
+
+            hairline.topAnchor.constraint(equalTo: content.topAnchor),
+            hairline.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            hairline.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             hairline.heightAnchor.constraint(equalToConstant: 0.5),
-            stack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            stack.leadingAnchor.constraint(equalTo: content.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(equalTo: content.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            stack.topAnchor.constraint(equalTo: content.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
     }
 
@@ -121,6 +138,8 @@ final class KbBarController: NSObject {
         DispatchQueue.main.async { [weak self] in self?.attach() }
     }
 
+    /// Asigna esta barra como inputAccessoryView del campo en foco. Idempotente:
+    /// no recarga si ya está puesta (evita el parpadeo al escribir).
     func attach() {
         guard let field = UIResponder.treggaFindCurrent() else { return }
         if let tf = field as? UITextField, tf.inputAccessoryView !== bar {
@@ -135,14 +154,15 @@ final class KbBarController: NSObject {
 
 private struct KbBarAttacher: UIViewRepresentable {
     let showNav: Bool
+    let focusToken: AnyHashable?
     let canUp: Bool
     let canDown: Bool
     let onUp: () -> Void
     let onDown: () -> Void
     let onDone: () -> Void
 
-    func makeCoordinator() -> KbBarController {
-        KbBarController(showNav: showNav, tint: UIColor(TreggaColors.primary))
+    func makeCoordinator() -> Coordinator {
+        Coordinator(controller: KbBarController(showNav: showNav, tint: UIColor(TreggaColors.primary)))
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -152,12 +172,22 @@ private struct KbBarAttacher: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        let c = context.coordinator
+        let c = context.coordinator.controller
         c.onUp = onUp
         c.onDown = onDown
         c.onDone = onDone
         c.setEnabled(up: canUp, down: canDown)
-        DispatchQueue.main.async { c.attach() }
+        // Re-asignar la barra SOLO al cambiar de campo (no en cada tecla → sin parpadeo).
+        if focusToken != context.coordinator.lastToken {
+            context.coordinator.lastToken = focusToken
+            DispatchQueue.main.async { c.attach() }
+        }
+    }
+
+    final class Coordinator {
+        let controller: KbBarController
+        var lastToken: AnyHashable?
+        init(controller: KbBarController) { self.controller = controller }
     }
 }
 
@@ -183,6 +213,7 @@ public extension View {
         return background(
             KbBarAttacher(
                 showNav: true,
+                focusToken: focus.wrappedValue.map { AnyHashable($0) },
                 canUp: (idx ?? 0) > 0,
                 canDown: idx != nil && idx! < order.count - 1,
                 onUp: { if let i = idx, i > 0 { focus.wrappedValue = order[i - 1] } },
@@ -196,7 +227,7 @@ public extension View {
     func keyboardDismissToolbar() -> some View {
         background(
             KbBarAttacher(
-                showNav: false, canUp: false, canDown: false,
+                showNav: false, focusToken: nil, canUp: false, canDown: false,
                 onUp: {}, onDown: {},
                 onDone: {
                     UIApplication.shared.sendAction(
