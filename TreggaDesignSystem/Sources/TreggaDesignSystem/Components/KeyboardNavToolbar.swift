@@ -1,6 +1,16 @@
 import SwiftUI
 import UIKit
 
+/// Margen vertical de los iconos de la barra: les da aire para que no queden
+/// pegados al teclado (ni al contenido de arriba).
+private let kbBarInset: CGFloat = 8
+
+private func kbBarIcon(_ systemName: String, size: CGFloat) -> some View {
+    Image(systemName: systemName)
+        .font(.system(size: size, weight: .semibold))
+        .padding(.vertical, kbBarInset)
+}
+
 public extension View {
     /// Barra sobre el teclado con flechas ↑/↓ para moverse entre los campos del
     /// formulario y un check (✓) para ocultar el teclado. Reemplaza al botón
@@ -26,14 +36,14 @@ public extension View {
                 Button {
                     if let i = index, order.indices.contains(i - 1) { focus.wrappedValue = order[i - 1] }
                 } label: {
-                    Image(systemName: "chevron.up").font(.system(size: 16, weight: .semibold))
+                    kbBarIcon("chevron.up", size: 16)
                 }
                 .disabled((index ?? 0) <= 0)
 
                 Button {
                     if let i = index, order.indices.contains(i + 1) { focus.wrappedValue = order[i + 1] }
                 } label: {
-                    Image(systemName: "chevron.down").font(.system(size: 16, weight: .semibold))
+                    kbBarIcon("chevron.down", size: 16)
                 }
                 .disabled(index == nil || index! >= order.count - 1)
 
@@ -42,7 +52,7 @@ public extension View {
                 Button {
                     focus.wrappedValue = nil
                 } label: {
-                    Image(systemName: "checkmark").font(.system(size: 17, weight: .semibold))
+                    kbBarIcon("checkmark", size: 17)
                 }
             }
         }
@@ -60,7 +70,7 @@ public extension View {
                         #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
                     )
                 } label: {
-                    Image(systemName: "checkmark").font(.system(size: 17, weight: .semibold))
+                    kbBarIcon("checkmark", size: 17)
                 }
             }
         }
