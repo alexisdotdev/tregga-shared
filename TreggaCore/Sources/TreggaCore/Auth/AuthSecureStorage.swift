@@ -91,4 +91,7 @@ public enum AuthStorageKey {
     public static let refreshToken = "refresh_token"
     public static let accessToken  = "access_token"
     public static let userId       = "user_id"
+    /// Epoch (segundos) de la última actividad. Base de la ventana deslizante de
+    /// 30 días: si se excede sin abrir la app, la sesión se cierra en `restore()`.
+    public static let lastActiveAt = "last_active_at"
 }
