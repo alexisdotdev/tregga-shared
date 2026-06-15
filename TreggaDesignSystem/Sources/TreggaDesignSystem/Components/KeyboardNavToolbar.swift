@@ -32,29 +32,25 @@ final class KbBarView: UIView {
     var onDown: (() -> Void)?
     var onDone: (() -> Void)?
 
-    /// Alto de la barra visible y del hueco transparente hacia el teclado.
-    private static let barHeight: CGFloat = 46
+    /// Alto de la barra visible (pill de vidrio) y del hueco hacia el teclado.
+    private static let barHeight: CGFloat = 48
     private static let gap: CGFloat = 12
+    private static let sideMargin: CGFloat = 10
 
     init(showNav: Bool, tint: UIColor) {
         self.tint = tint
         super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width,
                                  height: Self.barHeight + Self.gap))
         autoresizingMask = .flexibleWidth
-        backgroundColor = .clear   // el hueco inferior deja ver el fondo (separa del teclado)
+        backgroundColor = .clear   // fondo transparente: la pill de vidrio flota
 
-        // Contenedor visible (fondo sólido + hairline), pegado ARRIBA; abajo queda el hueco.
-        let content = UIView()
-        content.translatesAutoresizingMaskIntoConstraints = false
-        content.backgroundColor = UIColor { tc in
-            tc.userInterfaceStyle == .dark ? UIColor(white: 0.14, alpha: 1) : UIColor(white: 0.97, alpha: 1)
-        }
-        addSubview(content)
-
-        let hairline = UIView()
-        hairline.backgroundColor = .separator
-        hairline.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(hairline)
+        // Pill de vidrio (Liquid Glass en iOS 26; material translúcido como fallback).
+        let glass = UIVisualEffectView(effect: Self.glassEffect())
+        glass.translatesAutoresizingMaskIntoConstraints = false
+        glass.layer.cornerRadius = Self.barHeight / 2
+        glass.layer.cornerCurve = .continuous
+        glass.clipsToBounds = true
+        addSubview(glass)
 
         configure(upIcon, "chevron.up", #selector(tapUp))
         configure(downIcon, "chevron.down", #selector(tapDown))
@@ -68,24 +64,27 @@ final class KbBarView: UIView {
         stack.alignment = .center
         stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(stack)
+        glass.contentView.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            content.topAnchor.constraint(equalTo: topAnchor),
-            content.leadingAnchor.constraint(equalTo: leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: trailingAnchor),
-            content.heightAnchor.constraint(equalToConstant: Self.barHeight),
+            glass.topAnchor.constraint(equalTo: topAnchor),
+            glass.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.sideMargin),
+            glass.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.sideMargin),
+            glass.heightAnchor.constraint(equalToConstant: Self.barHeight),
 
-            hairline.topAnchor.constraint(equalTo: content.topAnchor),
-            hairline.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            hairline.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            hairline.heightAnchor.constraint(equalToConstant: 0.5),
-
-            stack.leadingAnchor.constraint(equalTo: content.safeAreaLayoutGuide.leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: content.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            stack.topAnchor.constraint(equalTo: content.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor, constant: 8),
+            stack.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor, constant: -12),
+            stack.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
         ])
+    }
+
+    private static func glassEffect() -> UIVisualEffect {
+        if #available(iOS 26.0, *) {
+            return UIGlassEffect()
+        } else {
+            return UIBlurEffect(style: .systemThinMaterial)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
