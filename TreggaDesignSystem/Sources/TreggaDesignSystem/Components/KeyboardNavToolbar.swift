@@ -1,14 +1,15 @@
 import SwiftUI
 import UIKit
 
-/// Margen vertical de los iconos de la barra: les da aire para que no queden
-/// pegados al teclado (ni al contenido de arriba).
-private let kbBarInset: CGFloat = 8
+/// Margen vertical de los iconos de la barra: un poco de aire para que no queden
+/// pegados al teclado, sin que floten.
+private let kbBarInset: CGFloat = 4
 
 private func kbBarIcon(_ systemName: String, size: CGFloat) -> some View {
     Image(systemName: systemName)
         .font(.system(size: size, weight: .semibold))
         .padding(.vertical, kbBarInset)
+        .contentShape(Rectangle())
 }
 
 public extension View {
@@ -38,6 +39,7 @@ public extension View {
                 } label: {
                     kbBarIcon("chevron.up", size: 16)
                 }
+                .buttonStyle(.plain)
                 .disabled((index ?? 0) <= 0)
 
                 Button {
@@ -45,6 +47,7 @@ public extension View {
                 } label: {
                     kbBarIcon("chevron.down", size: 16)
                 }
+                .buttonStyle(.plain)
                 .disabled(index == nil || index! >= order.count - 1)
 
                 Spacer()
@@ -54,6 +57,7 @@ public extension View {
                 } label: {
                     kbBarIcon("checkmark", size: 17)
                 }
+                .buttonStyle(.plain)
             }
         }
         .tint(TreggaColors.primary)
@@ -72,6 +76,7 @@ public extension View {
                 } label: {
                     kbBarIcon("checkmark", size: 17)
                 }
+                .buttonStyle(.plain)
             }
         }
         .tint(TreggaColors.primary)
