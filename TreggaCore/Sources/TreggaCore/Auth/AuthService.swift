@@ -69,6 +69,26 @@ public protocol AuthService: Sendable {
     /// se recibe de la UI para futura re-verificación; hoy la sesión activa
     /// es la que autoriza el cambio.
     func updatePassword(currentPassword: String, newPassword: String) async throws
+
+    /// Perfil básico del usuario autenticado (correo + nombre), para pre-llenar
+    /// formularios (p. ej. el onboarding del negocio tras entrar con Google).
+    /// nil si no hay sesión. Tiene default (nil) → es opt-in por implementación.
+    func currentUserProfile() async throws -> AuthUserProfile?
+}
+
+/// Datos mínimos del usuario autenticado para pre-llenar formularios.
+public struct AuthUserProfile: Sendable, Equatable {
+    public let email: String?
+    public let name: String?
+    public init(email: String?, name: String?) {
+        self.email = email
+        self.name = name
+    }
+}
+
+public extension AuthService {
+    /// Default: sin perfil. Las implementaciones con sesión real lo sobreescriben.
+    func currentUserProfile() async throws -> AuthUserProfile? { nil }
 }
 
 public enum AuthError: Error, Equatable, Sendable {

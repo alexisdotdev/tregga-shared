@@ -87,6 +87,20 @@ public final class SupabaseAuthService: AuthService {
         }
     }
 
+    public func currentUserProfile() async throws -> AuthUserProfile? {
+        guard let session = try? await client.auth.session else { return nil }
+        let user = session.user
+        let meta = user.userMetadata
+        func metaString(_ keys: [String]) -> String? {
+            for k in keys {
+                if case let .string(v)? = meta[k] { return v }
+            }
+            return nil
+        }
+        // Google guarda el nombre en full_name/name del user_metadata.
+        return AuthUserProfile(email: user.email, name: metaString(["full_name", "name"]))
+    }
+
     public func signOut() async throws {
         try await client.auth.signOut()
     }

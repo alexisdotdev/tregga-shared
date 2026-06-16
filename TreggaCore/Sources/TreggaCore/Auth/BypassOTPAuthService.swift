@@ -67,6 +67,19 @@ public final class BypassOTPAuthService: AuthService {
         )
     }
 
+    public func currentUserProfile() async throws -> AuthUserProfile? {
+        guard let session = try? await client.auth.session else { return nil }
+        let user = session.user
+        let meta = user.userMetadata
+        func metaString(_ keys: [String]) -> String? {
+            for k in keys {
+                if case let .string(v)? = meta[k] { return v }
+            }
+            return nil
+        }
+        return AuthUserProfile(email: user.email, name: metaString(["full_name", "name"]))
+    }
+
     public func signOut() async throws {
         try await client.auth.signOut()
     }
