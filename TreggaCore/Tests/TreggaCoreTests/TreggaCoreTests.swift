@@ -6,6 +6,26 @@ import Foundation
     #expect(MoneyFormatter.format(centavos: 12345) == "$123.45")
 }
 
+// MARK: - BusinessCategory.resolve (selector de Business + filtro de Food)
+
+@Test func categoryMatchExacto() {
+    // Lo que guarda el selector nuevo: el label tal cual (case/acento-insensible).
+    #expect(BusinessCategory.resolve("Tacos")?.id == "tacos")
+    #expect(BusinessCategory.resolve("comida corrida / económica")?.id == "corrida")
+}
+
+@Test func categoryFallbackPorPalabra() {
+    // Tipos de texto libre previos al selector se clasifican por palabra clave.
+    #expect(BusinessCategory.resolve("Tacos · Antojitos")?.id == "tacos")
+    #expect(BusinessCategory.resolve("Casera · Comida corrida")?.id == "corrida")
+}
+
+@Test func categorySinMatch() {
+    #expect(BusinessCategory.resolve("Carnitas · Michoacana") == nil)
+    #expect(BusinessCategory.resolve("") == nil)
+    #expect(BusinessCategory.resolve(nil) == nil)
+}
+
 // MARK: - AuthSession: ventana deslizante de inactividad (30 días)
 
 /// Storage in-memory para tests (el protocolo lo anticipa).
