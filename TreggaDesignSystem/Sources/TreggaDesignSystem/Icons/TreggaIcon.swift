@@ -35,6 +35,7 @@ public struct TreggaIcon: View {
         case qr, calendar, lock, shieldLock, wifiOff, location
         case car, wrench, box, speaker, speakerOff, image, chart, list
         case house, building, flag, turnLeft, turnRight, uturn, bug, ticket
+        case eye, eyeOff
 
         /// Hugeicons asset que respalda cada caso. Stroke rounded, grid 24x24.
         var asset: HugeiconsAsset {
@@ -124,6 +125,8 @@ public struct TreggaIcon: View {
             case .calendar: return Hugeicons.calendar03
             case .lock:    return Hugeicons.lock
             case .shieldLock: return Hugeicons.shieldKey
+            case .eye:     return Hugeicons.eye
+            case .eyeOff:  return Hugeicons.eyeOff
             case .wifiOff: return Hugeicons.wifiDisconnected01
             case .location: return Hugeicons.location01
             case .car:     return Hugeicons.car03
