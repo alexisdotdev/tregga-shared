@@ -47,6 +47,9 @@ public struct PasswordField<F: Hashable>: View {
     public var body: some View {
         HStack(spacing: 8) {
             field
+                // El campo ocupa el ancho disponible y todo su área enfoca al tap.
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             Button { revealed.toggle() } label: {
                 TreggaIcon(revealed ? .eyeOff : .eye, size: 18, color: TreggaColors.textSec)
                     .frame(width: 28, height: 28)
