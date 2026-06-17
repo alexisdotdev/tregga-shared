@@ -74,6 +74,12 @@ public protocol AuthService: Sendable {
     /// formularios (p. ej. el onboarding del negocio tras entrar con Google).
     /// nil si no hay sesión. Tiene default (nil) → es opt-in por implementación.
     func currentUserProfile() async throws -> AuthUserProfile?
+
+    /// Pide a la Edge Function `tregga-emails` (kind `verify_cliente`) que mande
+    /// un correo de verificación con enlace al usuario autenticado. No bloqueante:
+    /// la cuenta ya existe; esto solo confirma la propiedad del correo.
+    /// Default no-op → solo la impl real (Supabase) lo dispara.
+    func requestEmailVerification() async throws
 }
 
 /// Datos mínimos del usuario autenticado para pre-llenar formularios.
@@ -89,6 +95,9 @@ public struct AuthUserProfile: Sendable, Equatable {
 public extension AuthService {
     /// Default: sin perfil. Las implementaciones con sesión real lo sobreescriben.
     func currentUserProfile() async throws -> AuthUserProfile? { nil }
+
+    /// Default no-op: el Mock/Bypass no mandan correos reales.
+    func requestEmailVerification() async throws {}
 }
 
 public enum AuthError: Error, Equatable, Sendable {

@@ -101,6 +101,16 @@ public final class SupabaseAuthService: AuthService {
         return AuthUserProfile(email: user.email, name: metaString(["full_name", "name"]))
     }
 
+    public func requestEmailVerification() async throws {
+        struct Body: Encodable { let kind: String }
+        // functions.invoke adjunta el Authorization: Bearer <jwt> de la sesión activa;
+        // la Edge Function resuelve el correo del usuario y manda el enlace.
+        try await client.functions.invoke(
+            "tregga-emails",
+            options: .init(body: Body(kind: "verify_cliente"))
+        )
+    }
+
     public func signOut() async throws {
         try await client.auth.signOut()
     }
