@@ -212,6 +212,8 @@ public final class BypassOTPAuthService: AuthService {
         )
 
         let session = try await client.auth.session
+        // Migra la foto de Google a nuestro bucket en segundo plano (no bloquea login).
+        Task { await sincronizarAvatarDeGoogle(client: client) }
         return AuthSession.Tokens(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken,
