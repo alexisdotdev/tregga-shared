@@ -115,11 +115,17 @@ public final class BypassOTPAuthService: AuthService {
             .rpc("convertir_anonimo_a_email", params: Params(p_email: email, p_password: password))
             .execute()
 
-        // La RPC actualiza `auth.users` server-side (is_anonymous=false), pero el
-        // JWT en caché del cliente todavía dice is_anonymous=true. Forzamos un
-        // refresh para obtener un token nuevo y correcto: sin esto, al relanzar la
-        // app `currentUserIsAnonymous()` da true y se limpia la sesión (cae a Welcome).
-        _ = try await client.auth.refreshSession()
+        // El refresh corrige el JWT local (is_anonymous=false). Si falla por red NO
+        // es fatal: la cuenta YA existe server-side; lanzar haría que el caller
+        // limpie un alta exitosa. Reintentamos y, si no, seguimos.
+        for intento in 0..<3 {
+            do {
+                _ = try await client.auth.refreshSession()
+                return
+            } catch {
+                if intento < 2 { try? await Task.sleep(nanoseconds: 1_000_000_000) }
+            }
+        }
     }
 
     public func phoneIsRegistered(phoneE164: String) async throws -> Bool {
