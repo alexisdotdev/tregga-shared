@@ -122,9 +122,12 @@ public enum AuthError: Error, Equatable, Sendable {
 /// Clasificación de una cuenta para el login de Tregga Delivery.
 /// Espejo del RPC `check_email_account_kind` / `check_phone_account_kind`.
 public enum AccountKind: String, Sendable, Equatable {
-    case repartidor    // existe y es repartidor → login OTP
-    case other         // existe pero otro rol  → rechazar con dialog
-    case none          // no existe             → signup
+    case cliente       // existe y es cliente         → app Food
+    case negocio       // existe y es dueño de negocio → app Business
+    case repartidor    // existe y es repartidor       → app Delivery
+    case none          // no existe                    → signup
+    // Cada app deja entrar SOLO a su rol (o cuenta nueva); el resto se bloquea
+    // (cuentas separadas por rol: un correo = un rol).
 }
 
 @MainActor
@@ -222,10 +225,11 @@ public final class MockAuthService: AuthService {
     }
 
     public func emailAccountKind(email: String) async throws -> AccountKind {
-        // Mock: rep@tregga.app es repartidor; admin@tregga.app es otro rol.
+        // Mock por rol para probar la separación estricta de cada app.
         switch email.lowercased() {
         case "rep@tregga.app", "test@tregga.app": return .repartidor
-        case "admin@tregga.app":                  return .other
+        case "negocio@tregga.app":                return .negocio
+        case "cliente@tregga.app":                return .cliente
         default:                                  return .none
         }
     }
