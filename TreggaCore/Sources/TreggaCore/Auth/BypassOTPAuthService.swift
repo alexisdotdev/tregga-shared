@@ -159,6 +159,24 @@ public final class BypassOTPAuthService: AuthService {
         return AccountKind(rawValue: raw) ?? .none
     }
 
+    public func emailAccountRoles(email: String) async throws -> Set<AccountKind> {
+        struct Params: Encodable { let p_email: String }
+        let raw: [String] = try await client.rpc(
+            "email_account_roles",
+            params: Params(p_email: email)
+        ).execute().value
+        return Set(raw.compactMap { AccountKind(rawValue: $0) })
+    }
+
+    public func phoneAccountRoles(phoneE164: String) async throws -> Set<AccountKind> {
+        struct Params: Encodable { let p_phone: String }
+        let raw: [String] = try await client.rpc(
+            "phone_account_roles",
+            params: Params(p_phone: phoneE164)
+        ).execute().value
+        return Set(raw.compactMap { AccountKind(rawValue: $0) })
+    }
+
     /// El email OTP de Supabase funciona out-of-the-box (no requiere Twilio
     /// como SMS), por eso aunque estemos en Bypass mode para Phone, sí usamos
     /// la API real para correo: manda código y lo verifica contra Supabase.

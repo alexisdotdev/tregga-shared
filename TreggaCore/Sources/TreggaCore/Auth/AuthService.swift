@@ -46,6 +46,13 @@ public protocol AuthService: Sendable {
     /// Clasifica un teléfono (RPC `check_phone_account_kind`).
     func phoneAccountKind(phoneE164: String) async throws -> AccountKind
 
+    /// Conjunto de roles que posee la cuenta (multi-rol). Vacío = no existe.
+    /// A diferencia de `emailAccountKind` (un solo rol por prioridad), NO oculta
+    /// roles: cada app pregunta "¿tengo MI rol?" mirando este conjunto.
+    /// RPC `email_account_roles` / `phone_account_roles`.
+    func emailAccountRoles(email: String) async throws -> Set<AccountKind>
+    func phoneAccountRoles(phoneE164: String) async throws -> Set<AccountKind>
+
     /// Envía un código de un solo uso (magic code) al correo dado. Supabase manda
     /// un mail con 6 dígitos que el usuario ingresa en la OTPView.
     /// `shouldCreateUser` se mantiene en false: solo deja pasar correos ya registrados.
@@ -98,6 +105,18 @@ public extension AuthService {
 
     /// Default no-op: el Mock/Bypass no mandan correos reales.
     func requestEmailVerification() async throws {}
+
+    /// Default best-effort derivado del `kind` único (red de seguridad para
+    /// conformers que no implementen el RPC de conjunto). Las impls reales
+    /// (Supabase/Bypass) lo sobreescriben con `email_account_roles`.
+    func emailAccountRoles(email: String) async throws -> Set<AccountKind> {
+        let k = try await emailAccountKind(email: email)
+        return k == .none ? [] : [k, .cliente]
+    }
+    func phoneAccountRoles(phoneE164: String) async throws -> Set<AccountKind> {
+        let k = try await phoneAccountKind(phoneE164: phoneE164)
+        return k == .none ? [] : [k, .cliente]
+    }
 }
 
 public enum AuthError: Error, Equatable, Sendable {
@@ -236,6 +255,19 @@ public final class MockAuthService: AuthService {
 
     public func phoneAccountKind(phoneE164: String) async throws -> AccountKind {
         phoneE164 == "+525555555555" ? .repartidor : .none
+    }
+
+    public func emailAccountRoles(email: String) async throws -> Set<AccountKind> {
+        switch email.lowercased() {
+        case "rep@tregga.app", "test@tregga.app": return [.repartidor, .cliente]
+        case "negocio@tregga.app":                return [.negocio, .cliente]
+        case "cliente@tregga.app":                return [.cliente]
+        default:                                  return []
+        }
+    }
+
+    public func phoneAccountRoles(phoneE164: String) async throws -> Set<AccountKind> {
+        phoneE164 == "+525555555555" ? [.repartidor, .cliente] : []
     }
 
     public func sendEmailOTP(email: String) async throws {

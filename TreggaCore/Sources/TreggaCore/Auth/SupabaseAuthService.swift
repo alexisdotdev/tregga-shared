@@ -211,6 +211,32 @@ public final class SupabaseAuthService: AuthService {
         }
     }
 
+    public func emailAccountRoles(email: String) async throws -> Set<AccountKind> {
+        do {
+            struct Params: Encodable { let p_email: String }
+            let raw: [String] = try await client.rpc(
+                "email_account_roles",
+                params: Params(p_email: email)
+            ).execute().value
+            return Set(raw.compactMap { AccountKind(rawValue: $0) })
+        } catch {
+            throw mapError(error)
+        }
+    }
+
+    public func phoneAccountRoles(phoneE164: String) async throws -> Set<AccountKind> {
+        do {
+            struct Params: Encodable { let p_phone: String }
+            let raw: [String] = try await client.rpc(
+                "phone_account_roles",
+                params: Params(p_phone: phoneE164)
+            ).execute().value
+            return Set(raw.compactMap { AccountKind(rawValue: $0) })
+        } catch {
+            throw mapError(error)
+        }
+    }
+
     public func sendEmailOTP(email: String) async throws {
         do {
             // shouldCreateUser=false: solo manda a usuarios ya existentes; el path
