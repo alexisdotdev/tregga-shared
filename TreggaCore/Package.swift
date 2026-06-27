@@ -16,10 +16,6 @@ let package = Package(
             url: "https://github.com/supabase-community/supabase-swift",
             from: "2.5.1"
         ),
-        .package(
-            url: "https://github.com/googlemaps/ios-maps-sdk",
-            from: "10.13.0"
-        ),
     ],
     targets: [
         .target(
@@ -29,7 +25,6 @@ let package = Package(
                 .product(name: "Auth", package: "supabase-swift"),
                 .product(name: "PostgREST", package: "supabase-swift"),
                 .product(name: "Storage", package: "supabase-swift"),
-                .product(name: "GoogleMaps", package: "ios-maps-sdk"),
             ],
             path: "Sources/TreggaCore",
             swiftSettings: [
