@@ -59,11 +59,17 @@ private struct KeyboardNavToolbarModifier<Field: Hashable>: ViewModifier {
                 .disabled((idx ?? 0) <= 0)
 
                 Button {
-                    if let i = idx, i < order.count - 1 { focus.wrappedValue = order[i + 1] }
+                    if let i = idx, i < order.count - 1 {
+                        focus.wrappedValue = order[i + 1]
+                    } else {
+                        // Último campo: ↓ oculta el teclado (lo "siguiente" puede ser
+                        // un control no enfocable, p.ej. la rueda de fecha de nacimiento).
+                        focus.wrappedValue = nil
+                    }
                 } label: {
                     Image(systemName: "chevron.down").font(.system(size: 17, weight: .semibold))
                 }
-                .disabled(idx == nil || idx! >= order.count - 1)
+                .disabled(idx == nil)
 
                 Spacer()
 
