@@ -87,6 +87,19 @@ public protocol AuthService: Sendable {
     /// la cuenta ya existe; esto solo confirma la propiedad del correo.
     /// Default no-op → solo la impl real (Supabase) lo dispara.
     func requestEmailVerification() async throws
+
+    /// Alta de cliente vía la API de Next.js (`/api/cliente/register`), NO directo contra Supabase:
+    /// el registro debe pasar por el servidor para que capture la IP pública (`x-forwarded-for` →
+    /// `profiles.registration_ip`). El endpoint crea la cuenta y devuelve la sesión; la impl real la
+    /// establece y devuelve los tokens. Tiene default (Bypass/Mock) que cae al flujo local.
+    func registerCliente(
+        email: String,
+        password: String,
+        fullName: String,
+        apellidoPaterno: String,
+        apellidoMaterno: String?,
+        phone: String?
+    ) async throws -> AuthSession.Tokens
 }
 
 /// Datos mínimos del usuario autenticado para pre-llenar formularios.
@@ -116,6 +129,23 @@ public extension AuthService {
     func phoneAccountRoles(phoneE164: String) async throws -> Set<AccountKind> {
         let k = try await phoneAccountKind(phoneE164: phoneE164)
         return k == .none ? [] : [k, .cliente]
+    }
+
+    /// Default (Bypass/Mock, sin API): cae al alta local email+contraseña y devuelve la sesión
+    /// resultante. La impl real (Supabase) lo sobreescribe con el POST a `/api/cliente/register`.
+    func registerCliente(
+        email: String,
+        password: String,
+        fullName: String,
+        apellidoPaterno: String,
+        apellidoMaterno: String?,
+        phone: String?
+    ) async throws -> AuthSession.Tokens {
+        try await registerEmailPassword(email: email, password: password)
+        guard let tokens = try await currentSession() else {
+            throw AuthError.unknown("No se pudo iniciar la sesión tras el registro.")
+        }
+        return tokens
     }
 }
 

@@ -30,7 +30,7 @@ public struct TreggaIcon: View {
         case grid, moon, sun
         case arrow
         case warning, warningCircle, inbox, camera, settings, logout
-        case bolt, flash, idea, play, help, faceId, idVerified, license
+        case bolt, flash, idea, play, help, faceId, touchId, idVerified, license
         case docClock, pdf, download, fileExport, copy, tap
         case qr, calendar, lock, shieldLock, wifiOff, location
         case car, wrench, box, speaker, speakerOff, image, chart, list
@@ -113,6 +113,9 @@ public struct TreggaIcon: View {
             case .play:    return Hugeicons.playCircle02
             case .help:    return Hugeicons.helpCircle
             case .faceId:  return Hugeicons.faceId
+            // Nunca se usa: `.faceId`/`.touchId` se pintan con el SF Symbol
+            // original vía `systemSymbol` (ver `body`). Fallback para exhaustividad.
+            case .touchId: return Hugeicons.faceId
             case .idVerified: return Hugeicons.idVerified
             case .license: return Hugeicons.license
             case .docClock: return Hugeicons.clipboardClock
@@ -145,6 +148,17 @@ public struct TreggaIcon: View {
             case .uturn:   return Hugeicons.arrowTurnBackward
             case .bug:     return Hugeicons.bug02
             case .ticket:  return Hugeicons.ticket01
+            }
+        }
+
+        /// Marcas biométricas de Apple (Face ID / Touch ID): se pintan con el
+        /// SF Symbol **original** en vez de un Hugeicon, porque son marcas del
+        /// sistema que el usuario espera reconocer tal cual. `nil` para el resto.
+        var systemSymbol: String? {
+            switch self {
+            case .faceId:  return "faceid"
+            case .touchId: return "touchid"
+            default:       return nil
             }
         }
 
@@ -206,6 +220,7 @@ public struct TreggaIcon: View {
             case "moon": self = .moon
             case "bolt.fill": self = .bolt
             case "faceid": self = .faceId
+            case "touchid": self = .touchId
             case "lock": self = .lock
             case "lock.shield": self = .shieldLock
             case "hand.tap.fill": self = .tap
@@ -257,12 +272,22 @@ public struct TreggaIcon: View {
     }
 
     public var body: some View {
-        name.asset.image()
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(color)
-            .frame(width: size, height: size)
+        Group {
+            if let symbol = name.systemSymbol {
+                Image(systemName: symbol)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(color)
+                    .frame(width: size, height: size)
+            } else {
+                name.asset.image()
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(color)
+                    .frame(width: size, height: size)
+            }
+        }
     }
 
     /// Raw Hugeicons `Image` para call sites que requieren un `Image` (no una
@@ -271,7 +296,8 @@ public struct TreggaIcon: View {
     /// aplicarle tamaño/color.
     @MainActor
     public static func image(_ name: Name) -> Image {
-        name.asset.image()
+        if let symbol = name.systemSymbol { return Image(systemName: symbol) }
+        return name.asset.image()
     }
 }
 

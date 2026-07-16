@@ -53,7 +53,7 @@ public final class SupabaseAuthService: AuthService {
     /// POST JSON a un endpoint de auth del API Next.js (tregga.app). Mapea 401 a
     /// `invalidCode` cuando aplica (verificación de OTP).
     private func postAuth<T: Decodable, B: Encodable>(
-        _ path: String, body: B, invalidCodeOn401: Bool = false
+        _ path: String, body: B, invalidCodeOn401: Bool = false, conflictError: AuthError? = nil
     ) async throws -> T {
         var request = URLRequest(url: Config.API_BASE.appendingPathComponent(path))
         request.httpMethod = "POST"
@@ -63,6 +63,7 @@ public final class SupabaseAuthService: AuthService {
             let (data, response) = try await URLSession.shared.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             if invalidCodeOn401, status == 401 { throw AuthError.invalidCode }
+            if let conflictError, status == 409 { throw conflictError }
             guard (200..<300).contains(status) else {
                 throw AuthError.unknown("Error del servidor (\(status))")
             }
@@ -166,6 +167,56 @@ public final class SupabaseAuthService: AuthService {
     public func signInAnonymously() async throws -> AuthSession.Tokens {
         // Producción phone auth: no permitimos anonymous. El user debe completar OTP.
         throw AuthError.unknown("Sign-in anónimo no permitido en flujo Supabase real. Usa Phone OTP.")
+    }
+
+    public func registerCliente(
+        email: String,
+        password: String,
+        fullName: String,
+        apellidoPaterno: String,
+        apellidoMaterno: String?,
+        phone: String?
+    ) async throws -> AuthSession.Tokens {
+        // Alta vía la API de Next.js (captura la IP server-side en profiles.registration_ip).
+        // El endpoint crea cuenta+cliente+perfil y devuelve la sesión; la establecemos aquí.
+        struct Body: Encodable {
+            let email: String
+            let password: String
+            let full_name: String
+            let apellido_paterno: String
+            let apellido_materno: String?
+            let phone: String?
+        }
+        struct Resp: Decodable {
+            let user_id: String
+            let access_token: String?
+            let refresh_token: String?
+        }
+        let resp: Resp = try await postAuth(
+            "api/cliente/register",
+            body: Body(
+                email: email,
+                password: password,
+                full_name: fullName,
+                apellido_paterno: apellidoPaterno,
+                apellido_materno: apellidoMaterno,
+                phone: phone
+            ),
+            conflictError: .unknown("Ese correo ya está registrado. Inicia sesión.")
+        )
+        guard let access = resp.access_token, let refresh = resp.refresh_token else {
+            throw AuthError.unknown("El servidor no devolvió la sesión del registro.")
+        }
+        do {
+            let session = try await client.auth.setSession(accessToken: access, refreshToken: refresh)
+            return AuthSession.Tokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id
+            )
+        } catch {
+            throw mapError(error)
+        }
     }
 
     public func phoneIsRegistered(phoneE164: String) async throws -> Bool {
