@@ -21,13 +21,32 @@ public final class SepomexPostalCodeRepository: PostalCodeRepository {
         }
 
         let url = Self.baseURL.appendingPathComponent("\(clean).json")
-        let (data, response) = try await session.data(from: url)
 
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(from: url)
+        } catch {
+            // Fallo de transporte (sin red, timeout): el servicio no respondió,
+            // NO es que el CP no exista.
+            throw PostalCodeError.serviceUnavailable
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw PostalCodeError.serviceUnavailable
+        }
+        // 5xx = caída del proveedor (SEPOMEX suele devolver 502 vía Cloudflare
+        // cuando el origen está abajo). No confundir con "CP inexistente".
+        guard http.statusCode < 500 else {
+            throw PostalCodeError.serviceUnavailable
+        }
+        guard (200..<300).contains(http.statusCode) else {
             return nil
         }
 
-        let decoded = try JSONDecoder().decode(SepomexResponse.self, from: data)
+        guard let decoded = try? JSONDecoder().decode(SepomexResponse.self, from: data) else {
+            throw PostalCodeError.serviceUnavailable
+        }
         guard let postcodes = decoded.data?.postcodes, !postcodes.isEmpty else {
             return nil
         }

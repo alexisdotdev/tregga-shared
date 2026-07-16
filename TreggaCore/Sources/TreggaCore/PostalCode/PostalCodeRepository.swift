@@ -14,6 +14,8 @@ public protocol PostalCodeRepository: Sendable {
 public enum PostalCodeError: Error, Equatable, Sendable {
     case notFound
     case invalidFormat
+    /// El servicio de CP no respondió (caída/red): NO significa que el CP no exista.
+    case serviceUnavailable
 }
 
 @MainActor
