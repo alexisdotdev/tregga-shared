@@ -71,6 +71,12 @@ public protocol AuthService: Sendable {
     /// Returns tokens al completarse el callback.
     func signInWithGoogle(launchFlow: @escaping OAuthLaunchFlow) async throws -> AuthSession.Tokens
 
+    /// Sign-in nativo con Google: la app obtiene el `idToken` con el SDK
+    /// `GoogleSignIn` (selector nativo, sin mostrar el dominio de Supabase) y lo
+    /// canjea con Supabase vía `signInWithIdToken`. Los `client IDs` de iOS deben
+    /// estar autorizados en el provider Google de Supabase.
+    func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens
+
     /// Cambia la contraseña del usuario autenticado vía Supabase Auth
     /// (`auth.update(password:)`). Requiere sesión activa. `currentPassword`
     /// se recibe de la UI para futura re-verificación; hoy la sesión activa
@@ -118,6 +124,11 @@ public extension AuthService {
 
     /// Default no-op: el Mock/Bypass no mandan correos reales.
     func requestEmailVerification() async throws {}
+
+    /// Default: el sign-in nativo de Google solo aplica a la impl real (Supabase).
+    func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens {
+        throw AuthError.unknown("Google nativo no disponible en este modo.")
+    }
 
     /// Default best-effort derivado del `kind` único (red de seguridad para
     /// conformers que no implementen el RPC de conjunto). Las impls reales

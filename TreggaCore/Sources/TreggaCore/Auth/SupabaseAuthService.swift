@@ -351,6 +351,29 @@ public final class SupabaseAuthService: AuthService {
         )
     }
 
+    public func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens {
+        // Limpia cualquier sesión cacheada antes del nuevo login.
+        try? await client.auth.signOut()
+        do {
+            let session = try await client.auth.signInWithIdToken(
+                credentials: OpenIDConnectCredentials(
+                    provider: .google,
+                    idToken: idToken,
+                    accessToken: accessToken
+                )
+            )
+            // Migra la foto de Google a nuestro bucket en segundo plano.
+            Task { await sincronizarAvatarDeGoogle(client: client) }
+            return AuthSession.Tokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id
+            )
+        } catch {
+            throw mapError(error)
+        }
+    }
+
     public func updatePassword(currentPassword: String, newPassword: String) async throws {
         do {
             try await client.auth.update(user: UserAttributes(password: newPassword))
