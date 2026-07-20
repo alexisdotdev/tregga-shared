@@ -3,3 +3,6 @@
 .swiftpm/
 DerivedData/
 *.xcuserstate
+
+# Estado local de tooling (oh-my-claudecode)
+.omc/

@@ -77,6 +77,11 @@ public protocol AuthService: Sendable {
     /// estar autorizados en el provider Google de Supabase.
     func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens
 
+    /// Inicia sesión con email + contraseña (login por contraseña que el usuario
+    /// teclea, alternativa al OTP). Default lanza: solo la impl real (Supabase) lo
+    /// soporta.
+    func signInWithPassword(email: String, password: String) async throws -> AuthSession.Tokens
+
     /// Cambia la contraseña del usuario autenticado vía Supabase Auth
     /// (`auth.update(password:)`). Requiere sesión activa. `currentPassword`
     /// se recibe de la UI para futura re-verificación; hoy la sesión activa
@@ -128,6 +133,11 @@ public extension AuthService {
     /// Default: el sign-in nativo de Google solo aplica a la impl real (Supabase).
     func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens {
         throw AuthError.unknown("Google nativo no disponible en este modo.")
+    }
+
+    /// Default: el login con contraseña solo aplica a la impl real (Supabase).
+    func signInWithPassword(email: String, password: String) async throws -> AuthSession.Tokens {
+        throw AuthError.unknown("Login con contraseña no disponible en este modo.")
     }
 
     /// Default best-effort derivado del `kind` único (red de seguridad para
@@ -267,6 +277,16 @@ public final class MockAuthService: AuthService {
         AuthSession.Tokens(
             accessToken: "mock-google-\(UUID().uuidString)",
             refreshToken: "mock-google-refresh-\(UUID().uuidString)",
+            userId: UUID()
+        )
+    }
+
+    public func signInWithPassword(email: String, password: String) async throws -> AuthSession.Tokens {
+        // Mock: acepta cualquier contraseña no vacía y devuelve tokens.
+        guard !password.isEmpty else { throw AuthError.invalidCode }
+        return AuthSession.Tokens(
+            accessToken: "mock-pass-\(UUID().uuidString)",
+            refreshToken: "mock-pass-refresh-\(UUID().uuidString)",
             userId: UUID()
         )
     }

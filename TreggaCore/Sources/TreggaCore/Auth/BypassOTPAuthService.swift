@@ -208,6 +208,25 @@ public final class BypassOTPAuthService: AuthService {
         }
     }
 
+    public func signInWithPassword(email: String, password: String) async throws -> AuthSession.Tokens {
+        do {
+            let session = try await client.auth.signIn(email: email, password: password)
+            return AuthSession.Tokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id
+            )
+        } catch let e as AuthError {
+            throw e
+        } catch {
+            let nsErr = error as NSError
+            if nsErr.localizedDescription.lowercased().contains("invalid") {
+                throw AuthError.invalidCode
+            }
+            throw AuthError.unknown(error.localizedDescription)
+        }
+    }
+
     public func updatePassword(currentPassword: String, newPassword: String) async throws {
         do {
             try await client.auth.update(user: UserAttributes(password: newPassword))
