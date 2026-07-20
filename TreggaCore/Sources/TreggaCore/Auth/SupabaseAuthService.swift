@@ -164,9 +164,20 @@ public final class SupabaseAuthService: AuthService {
         }
     }
 
+    /// Sesión anónima que sirve de andamiaje al registro: permite subir fotos y
+    /// documentos antes de que exista la cuenta, y luego se convierte a
+    /// email+contraseña con `registerEmailPassword` (RPC `convertir_anonimo_a_email`).
+    ///
+    /// Antes esto lanzaba a propósito, como guard del flujo phone-OTP. Ese flujo se
+    /// eliminó al pasar a "login solo por correo" (ver IDENTIDAD-Y-LOGIN-reglas.md)
+    /// y el guard quedó huérfano rompiendo el alta en Delivery y Food.
     public func signInAnonymously() async throws -> AuthSession.Tokens {
-        // Producción phone auth: no permitimos anonymous. El user debe completar OTP.
-        throw AuthError.unknown("Sign-in anónimo no permitido en flujo Supabase real. Usa Phone OTP.")
+        let session = try await client.auth.signInAnonymously()
+        return AuthSession.Tokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            userId: session.user.id
+        )
     }
 
     public func registerCliente(
@@ -370,6 +381,25 @@ public final class SupabaseAuthService: AuthService {
                 userId: session.user.id
             )
         } catch {
+            throw mapError(error)
+        }
+    }
+
+    public func signInWithPassword(email: String, password: String) async throws -> AuthSession.Tokens {
+        do {
+            let session = try await client.auth.signIn(email: email, password: password)
+            return AuthSession.Tokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id
+            )
+        } catch {
+            // Credenciales inválidas → invalidCode (reusa el mensaje genérico de
+            // la UI); fallos de red se clasifican como en el resto del servicio.
+            let nsErr = error as NSError
+            if nsErr.localizedDescription.lowercased().contains("invalid") {
+                throw AuthError.invalidCode
+            }
             throw mapError(error)
         }
     }
