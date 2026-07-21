@@ -77,6 +77,18 @@ public protocol AuthService: Sendable {
     /// estar autorizados en el provider Google de Supabase.
     func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens
 
+    /// Sign in with Apple: la app obtiene el `idToken` con `AuthenticationServices`
+    /// y lo canjea con Supabase vía `signInWithIdToken`.
+    ///
+    /// El `nonce` es el valor **en claro**; a Apple se le manda su SHA-256 y a
+    /// Supabase el original, que es quien comprueba que coinciden. Sin él, el
+    /// id token sería reutilizable por un tercero que lo intercepte.
+    ///
+    /// Apple solo entrega nombre y correo la **primera** vez que el usuario
+    /// autoriza la app; por eso `fullName` se pasa aquí, para persistirlo en el
+    /// perfil en ese único momento.
+    func signInWithApple(idToken: String, nonce: String, fullName: String?) async throws -> AuthSession.Tokens
+
     /// Inicia sesión con email + contraseña (login por contraseña que el usuario
     /// teclea, alternativa al OTP). Default lanza: solo la impl real (Supabase) lo
     /// soporta.
@@ -133,6 +145,11 @@ public extension AuthService {
     /// Default: el sign-in nativo de Google solo aplica a la impl real (Supabase).
     func signInWithGoogle(idToken: String, accessToken: String?) async throws -> AuthSession.Tokens {
         throw AuthError.unknown("Google nativo no disponible en este modo.")
+    }
+
+    /// Default: Sign in with Apple solo aplica a la impl real (Supabase).
+    func signInWithApple(idToken: String, nonce: String, fullName: String?) async throws -> AuthSession.Tokens {
+        throw AuthError.unknown("Sign in with Apple no disponible en este modo.")
     }
 
     /// Default: el login con contraseña solo aplica a la impl real (Supabase).

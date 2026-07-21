@@ -389,6 +389,34 @@ public final class SupabaseAuthService: AuthService {
         }
     }
 
+    public func signInWithApple(idToken: String, nonce: String, fullName: String?) async throws -> AuthSession.Tokens {
+        // Limpia cualquier sesión cacheada antes del nuevo login.
+        try? await client.auth.signOut()
+        do {
+            let session = try await client.auth.signInWithIdToken(
+                credentials: OpenIDConnectCredentials(
+                    provider: .apple,
+                    idToken: idToken,
+                    nonce: nonce
+                )
+            )
+            // Apple entrega el nombre SOLO la primera vez que el usuario autoriza
+            // la app: si no se guarda ahora, no vuelve nunca y el perfil se queda
+            // sin nombre para siempre. Solo se escribe si está vacío, para no pisar
+            // uno que el usuario ya haya editado.
+            if let fullName, !fullName.isEmpty {
+                Task { await guardarNombreDeAppleSiFalta(client: client, nombre: fullName) }
+            }
+            return AuthSession.Tokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id
+            )
+        } catch {
+            throw mapError(error)
+        }
+    }
+
     public func signInWithPassword(email: String, password: String) async throws -> AuthSession.Tokens {
         do {
             let session = try await client.auth.signIn(email: email, password: password)
