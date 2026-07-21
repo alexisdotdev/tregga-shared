@@ -59,6 +59,10 @@ public final class SupabaseAuthService: AuthService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
+        // El default de URLRequest son 60 s. Por aquí pasan el registro y la
+        // verificación del OTP en las tres apps: es la puerta de entrada, y
+        // quedarse un minuto en el spinner del login se lee como app rota.
+        request.timeoutInterval = 15
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
