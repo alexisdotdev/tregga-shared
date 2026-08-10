@@ -23,8 +23,7 @@ public struct BusinessCategory: Identifiable, Hashable, Sendable {
 }
 
 public extension BusinessCategory {
-    /// Catálogo curado (29) estilo Rappi/UberEats/DiDi Food para MX: comida +
-    /// esenciales (frutería, abarrotes, farmacia) al final.
+    /// Catálogo curado (26) estilo Rappi/UberEats/DiDi Food para MX (solo comida).
     static let all: [BusinessCategory] = [
         .init(id: "tacos",          label: "Tacos",                  emoji: "🌮"),
         .init(id: "hamburguesas",   label: "Hamburguesas",           emoji: "🍔"),
@@ -51,11 +50,6 @@ public extension BusinessCategory {
         .init(id: "pastas",         label: "Pastas / Italiana",      emoji: "🍝"),
         .init(id: "hotdogs",        label: "Hot dogs",               emoji: "🌭"),
         .init(id: "bebidas",        label: "Bebidas",                emoji: "🧃"),
-        // No-comida (delivery de esenciales). Se agregan al final para no mover el
-        // orden de las de comida; el valor guardado sigue siendo el `label`.
-        .init(id: "fruteria",       label: "Frutería",               emoji: "🍎"),
-        .init(id: "tienda",         label: "Tienda / Abarrotes",     emoji: "🛒"),
-        .init(id: "farmacia",       label: "Farmacia",               emoji: "💊"),
         .init(id: "otro",           label: "Otro",                   emoji: "🍽️")
     ]
 
